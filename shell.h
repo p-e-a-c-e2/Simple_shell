@@ -17,4 +17,5 @@ char *_strncat(char *dest, char *src, int n);
 char *_strcat(char *dest, char *src);
 int string_length(char *pointer);
 char *_strchr(char *s, char c);
+char *find_path(info_t *, char *, char *);
 #endif
