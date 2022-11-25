@@ -1,44 +1,52 @@
 #include "shell.h"
-
 /**
- * main - entry point
- * @ac: arg count
- * @av: arg vector
- *
- * Return: 0 on success, 1 on error
- */
-int main(int ac, char **av)
+*main - entry point of the program
+*@ac: arg counter
+*@av: arg vector
+*@arr: strings of array
+*Return: always 0
+*/
+int main(int ac __attribute__((unused)), char *av[], char *arr[])
 {
-	info_t info[] = { INFO_INIT };
-	int fd = 2;
-
-	asm ("mov %1, %0\n\t"
-		"add $3, %0"
-		: "=r" (fd)
-		: "r" (fd));
-
-	if (ac == 2)
-	{
-		fd = open(av[1], O_RDONLY);
-		if (fd == -1)
-		{
-			if (errno == EACCES)
-				exit(126);
-			if (errno == ENOENT)
-			{
-				_eputs(av[0]);
-				_eputs(": 0: Can't open ");
-				_eputs(av[1]);
-				_eputchar('\n');
-				_eputchar(BUF_FLUSH);
-				exit(127);
-			}
-			return (EXIT_FAILURE);
-		}
-		info->readfd = fd;
-	}
-	populate_env_list(info);
-	read_history(info);
-	hsh(info, av);
-	return (EXIT_SUCCESS);
+char *buffer = NULL;
+size_t bufsize = 0;
+int status;
+pid_t child_pid;
+signal(SIGINT, SIG_IGN);
+while (1)
+{
+if (isatty(STDIN_FILENO))
+printf("~$ ");
+if (getline(&buffer, &bufsize, stdin) == -1)
+break;
+if (buffer == NULL)
+exit(0);
+av = parse_input_string(buffer);
+if (!av[0])
+{
+free(av);
+continue;
+}
+if (_strcmp(av[0], "env") == 0)
+{
+print_environ(), free(av);
+continue;
+}
+if (_strcmp(av[0], "exit") == 0)
+free(av), free(buffer), exit(0);
+child_pid = fork();
+if (child_pid == 0)
+{
+if (_strchr(av[0], '/') == NULL)
+av[0] = path_search(av[0]);
+if (execve(av[0], av, arr))
+{
+perror("execve"), exit(EXIT_FAILURE);
+break;
+}
+}
+wait(&status), free(av);
+}
+free(buffer);
+return (0);
 }
